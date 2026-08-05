@@ -120,3 +120,278 @@ for (let i = 0; i < 12; i++) {
         rotSpeed: (Math.random() - 0.5) * 2
     });
 }
+
+const petalCount = 200;
+const petalGeometry = new THREE.PlaneGeometry(0.3, 0.3);
+const petalMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffb6c1,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+});
+
+const petals = [];
+for (let i = 0; i < petalCount; i++) {
+    const petal = new THREE.Mesh(petalGeometry, petalMaterial.clone());
+    const colors = [0xffb6c1, 0xff69b4, 0xff1493, 0xffc0cb, 0xffa6c9];
+    petal.material.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
+
+    petal.position.set(
+        (Math.random() - 0.5) * 40,
+        Math.random() * 30 - 5,
+        (Math.random() - 0.5) * 40
+    );
+    petal.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+    );
+    petal.scale.setScalar(0.5 + Math.random() * 1);
+    scene.add(petal);
+
+    petals.push({
+        mesh: petal,
+        speedY: 0.02 + Math.random() * 0.05,
+        speedRot: 0.01 + Math.random() * 0.03,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 1 + Math.random() * 2
+    });
+}
+
+const sparkleCount = 300;
+const sparkleGeometry = new THREE.BufferGeometry();
+const sparklePositions = new Float32Array(sparkleCount * 3);
+const sparkleSizes = new Float32Array(sparkleCount);
+
+for (let i = 0; i < sparkleCount; i++) {
+    sparklePositions[i * 3] = (Math.random() - 0.5) * 50;
+    sparklePositions[i * 3 + 1] = (Math.random() - 0.5) * 30 + 5;
+    sparklePositions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    sparkleSizes[i] = Math.random() * 3;
+}
+
+sparkleGeometry.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
+sparkleGeometry.setAttribute('size', new THREE.BufferAttribute(sparkleSizes, 1));
+
+const sparkleMaterial = new THREE.PointsMaterial({
+    color: 0xffd700,
+    size: 0.2,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+});
+
+const sparkles = new THREE.Points(sparkleGeometry, sparkleMaterial);
+scene.add(sparkles);
+
+const groundGeometry = new THREE.CircleGeometry(15, 64);
+const groundMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d1b2d,
+    metalness: 0.3,
+    roughness: 0.7,
+    transparent: true,
+    opacity: 0.6
+});
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -3;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const ringGeometry = new THREE.RingGeometry(14, 15.5, 64);
+const ringMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff69b4,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide
+});
+const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+ring.rotation.x = -Math.PI / 2;
+ring.position.y = -2.9;
+scene.add(ring);
+
+const loveParticles = [];
+const loveGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+const loveColors = [0xff1493, 0xff69b4, 0xffb6c1, 0xff0066];
+
+for (let i = 0; i < 50; i++) {
+    const material = new THREE.MeshBasicMaterial({
+        color: loveColors[i % loveColors.length],
+        transparent: true,
+        opacity: 0.6
+    });
+    const particle = new THREE.Mesh(loveGeometry, material);
+    particle.position.set(
+        (Math.random() - 0.5) * 20,
+        Math.random() * 15,
+        (Math.random() - 0.5) * 20
+    );
+    scene.add(particle);
+    loveParticles.push({
+        mesh: particle,
+        baseY: particle.position.y,
+        speed: 0.5 + Math.random() * 1,
+        offset: Math.random() * Math.PI * 2
+    });
+}
+
+const bursts = [];
+
+function createBurst(position) {
+    const burstCount = 30;
+    const burstGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(burstCount * 3);
+    const velocities = [];
+
+    for (let i = 0; i < burstCount; i++) {
+        positions[i * 3] = position.x;
+        positions[i * 3 + 1] = position.y;
+        positions[i * 3 + 2] = position.z;
+
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        const speed = 0.1 + Math.random() * 0.3;
+
+        velocities.push({
+            x: Math.sin(phi) * Math.cos(theta) * speed,
+            y: Math.sin(phi) * Math.sin(theta) * speed,
+            z: Math.cos(phi) * speed
+        });
+    }
+
+    burstGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const burstMaterial = new THREE.PointsMaterial({
+        color: 0xffd700,
+        size: 0.5,
+        transparent: true,
+        opacity: 1,
+        blending: THREE.AdditiveBlending
+    });
+
+    const burst = new THREE.Points(burstGeometry, burstMaterial);
+    scene.add(burst);
+    bursts.push({ mesh: burst, velocities: velocities, life: 1.0 });
+}
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(heartGroup.children);
+
+    if (intersects.length > 0) {
+        createBurst(intersects[0].point);
+
+        const heart = intersects[0].object;
+        const originalScale = heart.scale.x;
+        heart.scale.setScalar(originalScale * 1.3);
+        setTimeout(() => {
+            heart.scale.setScalar(originalScale);
+        }, 300);
+    } else {
+        const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+        vector.unproject(camera);
+        const dir = vector.sub(camera.position).normalize();
+        const distance = 10;
+        const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+        createBurst(pos);
+    }
+});
+
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const time = clock.getElapsedTime();
+
+    hearts.forEach((h, i) => {
+        if (i === 0) {
+            h.mesh.rotation.y = time * 0.3;
+            h.mesh.position.y = h.yOffset + Math.sin(time * 0.8) * 0.5;
+            const scale = 3 + Math.sin(time * 1.5) * 0.1;
+            h.mesh.scale.setScalar(scale);
+        } else {
+            const angle = h.offset + time * h.speed * 0.3;
+            h.mesh.position.x = Math.cos(angle) * h.radius;
+            h.mesh.position.z = Math.sin(angle) * h.radius;
+            h.mesh.position.y = h.yOffset + Math.sin(time * h.speed + h.offset) * 1.5;
+            h.mesh.rotation.x += h.rotSpeed * 0.01;
+            h.mesh.rotation.y += h.rotSpeed * 0.01;
+        }
+    });
+
+    petals.forEach(p => {
+        p.mesh.position.y -= p.speedY;
+        p.mesh.position.x += Math.sin(time * p.wobbleSpeed + p.wobble) * 0.02;
+        p.mesh.rotation.x += p.speedRot;
+        p.mesh.rotation.y += p.speedRot * 0.5;
+
+        if (p.mesh.position.y < -8) {
+            p.mesh.position.y = 20;
+            p.mesh.position.x = (Math.random() - 0.5) * 40;
+            p.mesh.position.z = (Math.random() - 0.5) * 40;
+        }
+    });
+
+    const positions = sparkles.geometry.attributes.position.array;
+    for (let i = 0; i < sparkleCount; i++) {
+        positions[i * 3 + 1] += Math.sin(time * 2 + i) * 0.02;
+        positions[i * 3] += Math.cos(time * 0.5 + i * 0.1) * 0.01;
+    }
+    sparkles.geometry.attributes.position.needsUpdate = true;
+    sparkles.rotation.y = time * 0.05;
+
+    loveParticles.forEach(p => {
+        p.mesh.position.y = p.baseY + Math.sin(time * p.speed + p.offset) * 2;
+        p.mesh.material.opacity = 0.3 + Math.sin(time * 2 + p.offset) * 0.3;
+    });
+
+    for (let i = bursts.length - 1; i >= 0; i--) {
+        const burst = bursts[i];
+        burst.life -= 0.02;
+
+        if (burst.life <= 0) {
+            scene.remove(burst.mesh);
+            bursts.splice(i, 1);
+            continue;
+        }
+
+        const posArray = burst.mesh.geometry.attributes.position.array;
+        for (let j = 0; j < burst.velocities.length; j++) {
+            posArray[j * 3] += burst.velocities[j].x;
+            posArray[j * 3 + 1] += burst.velocities[j].y;
+            posArray[j * 3 + 2] += burst.velocities[j].z;
+        }
+        burst.mesh.geometry.attributes.position.needsUpdate = true;
+        burst.mesh.material.opacity = burst.life;
+    }
+
+    ring.rotation.z = time * 0.2;
+    ringMaterial.opacity = 0.2 + Math.sin(time * 2) * 0.1;
+
+    pointLight1.intensity = 1.5 + Math.sin(time * 1.5) * 0.5;
+    pointLight2.intensity = 1.5 + Math.cos(time * 1.2) * 0.5;
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+    }, 1500);
+});
+
+animate();
