@@ -75,6 +75,7 @@ function create3DHeart(scale = 1, color = 0xff1493) {
     };
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.center();
+    geometry.rotateZ(Math.PI);
 
     const material = new THREE.MeshPhysicalMaterial({
         color: color,
